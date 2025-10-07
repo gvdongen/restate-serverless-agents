@@ -14,27 +14,29 @@ export const InsuranceClaimSchema = z.object({
 
 export type InsuranceClaim = z.infer<typeof InsuranceClaimSchema>;
 
-
-const claimApprovalAgentV2 = restate.service({
+const claimApprovalAgent = restate.service({
   name: "ClaimApprovalAgent",
   handlers: {
-    run: async (ctx: restate.Context, { customerId, prompt }: { customerId: string, prompt: string }) => {
-
+    run: async (
+      ctx: restate.Context,
+      { customerId, prompt }: { customerId: string; prompt: string },
+    ) => {
       // enrich with database data
-      const customerPolicy = ctx.run("fetch customer policy from DB", () => retrieveCustomerPolicy(customerId));
+      const customerPolicy = ctx.run("fetch customer policy from DB", () =>
+        retrieveCustomerPolicy(customerId),
+      );
 
       const model = wrapLanguageModel({
         model: openai("gpt-4o"),
         middleware: durableCalls(ctx),
       });
 
-      // <start_here>
       const { text } = await generateText({
         model,
         system:
-            "You are an insurance claim evaluation agent. Use these rules: " +
-            "* if the amount is more than 1000, ask for human approval, " +
-            "* if the amount is less than 1000, decide by yourself",
+          "You are an insurance claim evaluation agent. Use these rules: " +
+          "* if the amount is more than 1000, ask for human approval, " +
+          "* if the amount is less than 1000, decide by yourself",
         prompt: `${prompt}\n\nCustomer Policy Info: ${JSON.stringify(customerPolicy)}`,
         tools: {
           humanApproval: tool({
@@ -43,7 +45,7 @@ const claimApprovalAgentV2 = restate.service({
             execute: async (claim: InsuranceClaim): Promise<boolean> => {
               const approval = ctx.awakeable<boolean>();
               await ctx.run("request-review", () =>
-                  requestHumanReview(claim, approval.id),
+                requestHumanReview(claim, approval.id),
               );
               return approval.promise;
             },
@@ -51,20 +53,21 @@ const claimApprovalAgentV2 = restate.service({
         },
         stopWhen: [stepCountIs(5)],
       });
-      // <end_here>
       return text;
     },
   },
 });
 
 restate.serve({
-  services: [claimApprovalAgentV2],
+  services: [claimApprovalAgent],
 });
-
 
 // UTILS
 
-export function requestHumanReview(message: InsuranceClaim, responseId: string = "") {
+export function requestHumanReview(
+  message: InsuranceClaim,
+  responseId: string = "",
+) {
   console.log(`>>> ${message} \n
   Submit your claim review via: \n
     curl localhost:8080/restate/awakeables/${responseId}/resolve --json 'true'
@@ -73,6 +76,9 @@ export function requestHumanReview(message: InsuranceClaim, responseId: string =
 
 export function retrieveCustomerPolicy(customerId: string) {
   console.log(`Retrieving policy info for customer ${customerId}...`);
-  return { policyNumber: "POL123456", coverage: "Full", validTill: "2025-12-31"}
+  return {
+    policyNumber: "POL123456",
+    coverage: "Full",
+    validTill: "2025-12-31",
+  };
 }
-

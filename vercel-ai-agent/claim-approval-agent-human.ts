@@ -14,7 +14,6 @@ export const InsuranceClaimSchema = z.object({
 
 export type InsuranceClaim = z.infer<typeof InsuranceClaimSchema>;
 
-
 const claimApprovalAgentWithHumanApproval = restate.service({
   name: "ClaimApprovalAgent",
   handlers: {
@@ -24,13 +23,12 @@ const claimApprovalAgentWithHumanApproval = restate.service({
         middleware: durableCalls(ctx, { maxRetryAttempts: 3 }),
       });
 
-      // <start_here>
       const { text } = await generateText({
         model,
         system:
-            "You are an insurance claim evaluation agent. Use these rules: " +
-            "* if the amount is more than 1000, ask for human approval, " +
-            "* if the amount is less than 1000, decide by yourself",
+          "You are an insurance claim evaluation agent. Use these rules: " +
+          "* if the amount is more than 1000, ask for human approval, " +
+          "* if the amount is less than 1000, decide by yourself",
         prompt,
         tools: {
           humanApproval: tool({
@@ -39,16 +37,14 @@ const claimApprovalAgentWithHumanApproval = restate.service({
             execute: async (claim: InsuranceClaim): Promise<boolean> => {
               const approval = ctx.awakeable<boolean>();
               await ctx.run("request-review", () =>
-                  requestHumanReview(claim, approval.id),
+                requestHumanReview(claim, approval.id),
               );
               return approval.promise;
             },
           }),
         },
         stopWhen: [stepCountIs(5)],
-        providerOptions: { openai: { parallelToolCalls: false } },
       });
-      // <end_here>
       return text;
     },
   },
@@ -58,10 +54,12 @@ restate.serve({
   services: [claimApprovalAgentWithHumanApproval],
 });
 
-
 // UTILS
 
-export function requestHumanReview(message: InsuranceClaim, responseId: string = "") {
+export function requestHumanReview(
+  message: InsuranceClaim,
+  responseId: string = "",
+) {
   console.log(`>>> ${message} \n
   Submit your claim review via: \n
     curl localhost:8080/restate/awakeables/${responseId}/resolve --json 'true'

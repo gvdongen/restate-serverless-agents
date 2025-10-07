@@ -3,7 +3,6 @@ import { durableCalls } from "@restatedev/vercel-ai-middleware";
 import { openai } from "@ai-sdk/openai";
 import { generateText, tool, wrapLanguageModel, stepCountIs } from "ai";
 
-
 const claimApprovalAgent = restate.service({
   name: "ClaimApprovalAgent",
   handlers: {
@@ -21,8 +20,8 @@ const claimApprovalAgent = restate.service({
       });
       return text;
     },
-    },
-  })
+  },
+});
 
 restate.serve({
   services: [claimApprovalAgent],
