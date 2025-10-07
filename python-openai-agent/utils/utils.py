@@ -54,7 +54,7 @@ class SupportTicket(BaseModel):
     message: str
 
 
-def create_support_ticket_in_crm(ticket: SupportTicket) -> str:
+def create_ticket(ticket: SupportTicket) -> str:
     # Mock ticket creation (would be real API calls to ticketing systems)
     ticket_id = "TICKET-" + str(uuid.uuid4())
     return str(
